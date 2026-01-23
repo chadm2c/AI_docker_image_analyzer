@@ -5,11 +5,11 @@ from models import DockerMetadata
 
 load_dotenv()
 
-class DeepSeekAnalyzer:
+class AIAnalyzer:
     def __init__(self):
         self.token = os.getenv("GITHUB_TOKEN")
         self.endpoint = "https://models.inference.ai.azure.com"
-        self.model_name = "DeepSeek-V3-0324"
+        self.model_name = "Llama-4-Scout-17B-16E-Instruct"
         
         if self.token:
             self.client = OpenAI(
@@ -58,7 +58,7 @@ class DeepSeekAnalyzer:
             )
             return response.choices[0].message.content
         except Exception as e:
-            return f"Error calling DeepSeek-V3 via GitHub Models: {str(e)}"
+            return f"Error calling AI Model via GitHub Models: {str(e)}"
 
     def _format_history(self, history: list) -> str:
         summary = ""
@@ -68,4 +68,4 @@ class DeepSeekAnalyzer:
             summary += f"- Layer {i}: {created_by[:100]}... (Size: {size})\n"
         return summary
 
-deepseek_analyzer = DeepSeekAnalyzer()
+ai_analyzer = AIAnalyzer()

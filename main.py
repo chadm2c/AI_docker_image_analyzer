@@ -1,12 +1,22 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from models import AnalysisRequest, AnalysisResponse
 from docker_client import docker_manager
-from analyzer import deepseek_analyzer as gemini_analyzer
+from analyzer import ai_analyzer as gemini_analyzer
 
 app = FastAPI(
     title="AI Docker Image Analyzer API",
     description="Analyze Docker images using AI to generate hardening recommendations.",
     version="1.0.0"
+)
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # For development, allow all. In production, specify the frontend URL.
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/health")
