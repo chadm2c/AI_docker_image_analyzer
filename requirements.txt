@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+docker
+openai
+python-dotenv
+pydantic
+pydantic-settings
