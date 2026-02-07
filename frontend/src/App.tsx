@@ -23,12 +23,20 @@ interface AnalysisResponse {
   recommendations: string;
 }
 
+interface DockerfileResponse {
+  dockerfile: string;
+}
+
 const App: React.FC = () => {
   const [imageName, setImageName] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showAllHistory, setShowAllHistory] = useState(false);
+
+  // Dockerfile Generation State
+  const [loadingDockerfile, setLoadingDockerfile] = useState(false);
+  const [dockerfileContent, setDockerfileContent] = useState<string | null>(null);
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +45,11 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
     setResult(null);
+    setDockerfileContent(null); // Reset dockerfile on new analysis
     setShowAllHistory(false);
 
     try {
-      const response = await fetch('http://127.0.0.1:8080/analyze', {
+      const response = await fetch('http://127.0.0.1:8000/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,6 +68,32 @@ const App: React.FC = () => {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGenerateDockerfile = async () => {
+    if (!result) return;
+
+    setLoadingDockerfile(true);
+    try {
+      const response = await fetch('http://127.0.0.1:8000/generate-dockerfile', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ image_name: result.image }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate Dockerfile');
+      }
+
+      const data: DockerfileResponse = await response.json();
+      setDockerfileContent(data.dockerfile);
+    } catch (err: any) {
+      alert("Error generating Dockerfile: " + err.message);
+    } finally {
+      setLoadingDockerfile(false);
     }
   };
 
@@ -198,14 +233,50 @@ const App: React.FC = () => {
                     </div>
                   ))}
                 </div>
-                <button
-                  onClick={() => setShowAllHistory(!showAllHistory)}
-                  className="mt-4 text-[10px] font-bold tracking-widest uppercase text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
-                >
-                  {showAllHistory ? 'Show Less ▴' : `Show More (${result.metadata.history.length - 3}) ▾`}
-                </button>
+                <div className="flex justify-between items-center mt-4">
+                  <button
+                    onClick={() => setShowAllHistory(!showAllHistory)}
+                    className="text-[10px] font-bold tracking-widest uppercase text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
+                  >
+                    {showAllHistory ? 'Show Less ▴' : `Show Layers (${result.metadata.history.length}) ▾`}
+                  </button>
+
+                  {/* Generate Dockerfile Button within the card context */}
+                  <button
+                    onClick={handleGenerateDockerfile}
+                    disabled={loadingDockerfile}
+                    className="text-[10px] font-bold tracking-widest uppercase text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1"
+                  >
+                    {loadingDockerfile ? 'Generating... ⏳' : 'Build Dockerfile ⚡'}
+                  </button>
+                </div>
               </div>
             </div>
+
+            {/* Reconstructed Dockerfile Section (Conditionally Rendered) */}
+            {dockerfileContent && (
+              <div className="glass-card overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="bg-gradient-to-r from-indigo-600/20 via-blue-600/20 to-transparent px-10 py-6 border-b border-white/10 flex justify-between items-center">
+                  <h2 className="text-xl font-bold flex items-center gap-3 text-white">
+                    <span className="p-2 bg-indigo-500/20 rounded-lg text-indigo-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                    </span>
+                    Reconstructed Dockerfile
+                  </h2>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(dockerfileContent); alert("Copied!") }}
+                    className="text-xs bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-slate-300"
+                  >
+                    Copy Code
+                  </button>
+                </div>
+                <div className="p-0 overflow-x-auto">
+                  <pre className="p-6 text-sm font-mono text-blue-100 bg-black/30 leading-relaxed custom-scrollbar">
+                    <code>{dockerfileContent}</code>
+                  </pre>
+                </div>
+              </div>
+            )}
 
             {/* AI Insights Section */}
             <div className="glass-card overflow-hidden">

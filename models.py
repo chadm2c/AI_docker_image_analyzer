@@ -24,3 +24,6 @@ class AnalysisResponse(BaseModel):
     image: str
     metadata: DockerMetadata
     recommendations: str
+
+class DockerfileResponse(BaseModel):
+    dockerfile: str

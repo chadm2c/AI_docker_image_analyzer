@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models import AnalysisRequest, AnalysisResponse
+from models import AnalysisRequest, AnalysisResponse, DockerfileResponse
 from docker_client import docker_manager
 from analyzer import ai_analyzer as gemini_analyzer
 
@@ -37,6 +37,18 @@ async def analyze_image(request: AnalysisRequest):
             metadata=metadata,
             recommendations=recommendations
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate-dockerfile", response_model=DockerfileResponse)
+async def generate_dockerfile(request: AnalysisRequest):
+    try:
+        # Reuse existing metadata logic
+        metadata = docker_manager.get_image_metadata(request.image_name)
+        
+        dockerfile_content = await gemini_analyzer.generate_dockerfile(metadata)
+        
+        return DockerfileResponse(dockerfile=dockerfile_content)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -60,6 +60,53 @@ class AIAnalyzer:
         except Exception as e:
             return f"Error calling AI Model via GitHub Models: {str(e)}"
 
+    async def generate_dockerfile(self, metadata: DockerMetadata) -> str:
+        if not self.client:
+            return "# GitHub Token not configured. Cannot generate Dockerfile."
+
+        prompt = f"""
+        Reconstruct the most likely original `Dockerfile` for the following container image based on its metadata and history.
+        
+        Metadata:
+        - Image ID: {metadata.image_id}
+        - Base OS/Arch: {metadata.os}/{metadata.architecture}
+        - User: {metadata.user if metadata.user else 'root'}
+        - Exposed Ports: {', '.join(metadata.exposed_ports) if metadata.exposed_ports else 'None'}
+        - Env Vars: {', '.join(metadata.env_vars) if metadata.env_vars else 'None'}
+
+        Image Layers (History):
+        {self._format_history(metadata.history)}
+
+        Instructions:
+        1. Start with a likely FROM instruction (guess the base image, e.g., alpine, debian, node).
+        2. Combine related RUN commands where logical, but respect the layer history.
+        3. Include ENV, EXPOSE, and WORKDIR instructions derived from the metadata.
+        4. End with the likely CMD or ENTRYPOINT.
+        5. Output ONLY the raw Dockerfile content. No markdown formatting or explanation.
+        """
+
+        try:
+            response = self.client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a Docker expert. Output only valid Dockerfile code.",
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                model=self.model_name,
+            )
+            content = response.choices[0].message.content
+            # Strip markdown code blocks if the model includes them despite instructions
+            if content.startswith("```"):
+                content = content.replace("```dockerfile", "").replace("```", "").strip()
+            return content
+        except Exception as e:
+            return f"# Error generating Dockerfile: {str(e)}"
+
     def _format_history(self, history: list) -> str:
         summary = ""
         for i, layer in enumerate(history[:10]):
