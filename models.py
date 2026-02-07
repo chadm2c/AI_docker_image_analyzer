@@ -1,5 +1,22 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
+
+class ChatRequest(BaseModel):
+    image_name: str
+    message: str
+
+class ChatResponse(BaseModel):
+    response: str
+
+class OptimizationSuggestion(BaseModel):
+    title: str
+    description: str
+    potential_savings: str  # e.g. "45 MB" or "10%"
+
+class OptimizationResponse(BaseModel):
+    suggestions: List[OptimizationSuggestion]
+    total_size: int
+    potential_total_savings: str
 
 class AnalysisRequest(BaseModel):
     image_name: str = Field(..., example="nginx:latest")

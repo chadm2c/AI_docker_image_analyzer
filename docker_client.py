@@ -1,5 +1,6 @@
 import docker
 from typing import Dict, Any, List
+from fastapi import HTTPException
 from models import DockerMetadata
 
 class DockerManager:
@@ -41,6 +42,13 @@ class DockerManager:
                 history=history_data
             )
             return metadata
+            return metadata
+        except docker.errors.ImageNotFound:
+            raise HTTPException(status_code=404, detail=f"Image name '{image_name}' not found locally or on Docker Hub.")
+        except docker.errors.APIError as e:
+            if e.response.status_code == 404:
+                 raise HTTPException(status_code=404, detail=f"Image name '{image_name}' not found locally or on Docker Hub.")
+            raise Exception(f"Docker API Error: {str(e)}")
         except Exception as e:
             raise Exception(f"Failed to extract metadata for {image_name}: {str(e)}")
 
