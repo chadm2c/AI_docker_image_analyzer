@@ -27,6 +27,13 @@ interface DockerfileResponse {
   dockerfile: string;
 }
 
+interface FileNode {
+  name: string;
+  type: 'file' | 'directory';
+  size: number;
+  children?: FileNode[] | null;
+}
+
 const App: React.FC = () => {
   const [imageName, setImageName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -47,6 +54,11 @@ const App: React.FC = () => {
   // Optimization State
   const [optimizing, setOptimizing] = useState(false);
   const [optimizationResult, setOptimizationResult] = useState<any>(null);
+
+  // File Explorer State
+  const [files, setFiles] = useState<FileNode[] | null>(null);
+  const [fetchingFiles, setFetchingFiles] = useState(false);
+  const [explorerOpen, setExplorerOpen] = useState(false);
 
 
   const handleAnalyze = async (e: React.FormEvent) => {
@@ -159,6 +171,78 @@ const App: React.FC = () => {
     } finally {
       setOptimizing(false);
     }
+  };
+
+  const handleFetchFiles = async () => {
+    if (!result) return;
+    setFetchingFiles(true);
+    try {
+      const response = await fetch('http://127.0.0.1:8000/files', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_name: result.image }),
+      });
+      if (!response.ok) throw new Error('Failed to fetch files');
+      const data = await response.json();
+      setFiles(data);
+      setExplorerOpen(true);
+    } catch (err: any) {
+      alert("Error fetching files: " + err.message);
+    } finally {
+      setFetchingFiles(false);
+    }
+  };
+
+  const FileExplorerItem = ({ node, depth = 0 }: { node: FileNode, depth?: number }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const hasChildren = node.children && node.children.length > 0;
+
+    return (
+      <div className="select-none">
+        <div
+          onClick={() => node.type === 'directory' && setIsOpen(!isOpen)}
+          className={`group flex items-center gap-2 py-1.5 px-3 rounded-lg cursor-pointer transition-colors ${isOpen ? 'bg-white/10' : 'hover:bg-white/5'
+            }`}
+          style={{ paddingLeft: `${depth * 1.5 + 0.75}rem` }}
+        >
+          <span className="text-slate-500">
+            {node.type === 'directory' ? (
+              <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            )}
+          </span>
+          <span className={`text-sm ${node.type === 'directory' ? 'text-blue-300 font-medium' : 'text-slate-300'}`}>
+            {node.name}
+          </span>
+          {node.type === 'file' && (
+            <span className="text-[10px] text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+              {(node.size / 1024).toFixed(1)} KB
+            </span>
+          )}
+        </div>
+        {isOpen && node.type === 'directory' && (
+          <div className="animate-in fade-in slide-in-from-left-2 duration-200">
+            {hasChildren ? (
+              node.children!.map((child, idx) => (
+                <FileExplorerItem key={idx} node={child} depth={depth + 1} />
+              ))
+            ) : (
+              <div
+                className="text-[10px] py-1 text-slate-500 italic"
+                style={{ paddingLeft: `${(depth + 1) * 1.5 + 0.75}rem` }}
+              >
+                (empty or beyond exploration depth)
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   };
 
   const historyDisplayCount = showAllHistory ? result?.metadata.history.length : 3;
@@ -299,10 +383,11 @@ const App: React.FC = () => {
                 </div>
                 <div className="flex justify-between items-center mt-4">
                   <button
-                    onClick={() => setShowAllHistory(!showAllHistory)}
-                    className="text-[10px] font-bold tracking-widest uppercase text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1"
+                    onClick={handleFetchFiles}
+                    disabled={fetchingFiles}
+                    className="text-[10px] font-bold tracking-widest uppercase text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
                   >
-                    {showAllHistory ? 'Show Less ▴' : `Show Layers (${result.metadata.history.length}) ▾`}
+                    {fetchingFiles ? 'Exploring... 🔍' : 'Explore Files 📂'}
                   </button>
                   <button
                     onClick={handleGenerateDockerfile}
@@ -314,6 +399,30 @@ const App: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Visual File Explorer Section */}
+            {explorerOpen && files && (
+              <div className="glass-card overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-1000">
+                <div className="bg-gradient-to-r from-emerald-600/20 via-blue-600/20 to-transparent px-10 py-6 border-b border-white/10 flex justify-between items-center">
+                  <h2 className="text-xl font-bold flex items-center gap-3 text-white">
+                    <span className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                    </span>
+                    Visual File Explorer
+                  </h2>
+                  <button onClick={() => setExplorerOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+                <div className="p-8 max-h-[500px] overflow-y-auto custom-scrollbar bg-black/40">
+                  <div className="space-y-1">
+                    {files.map((node, idx) => (
+                      <FileExplorerItem key={idx} node={node} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Optimization Wizard Section */}
             <div className="glass-card overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-1000">

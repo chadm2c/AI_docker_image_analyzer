@@ -1,6 +1,7 @@
+from typing import List
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models import AnalysisRequest, AnalysisResponse, DockerfileResponse, ChatRequest, ChatResponse, OptimizationResponse
+from models import AnalysisRequest, AnalysisResponse, DockerfileResponse, ChatRequest, ChatResponse, OptimizationResponse, FileNode
 from docker_client import docker_manager
 from analyzer import ai_analyzer as gemini_analyzer
 
@@ -82,6 +83,16 @@ async def optimize_image(request: AnalysisRequest):
         return OptimizationResponse(**optimization_data)
     except HTTPException:
         raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/files", response_model=List[FileNode])
+async def get_files(request: AnalysisRequest):
+    try:
+        files = docker_manager.get_image_files(request.image_name)
+        return files
     except Exception as e:
         import traceback
         traceback.print_exc()

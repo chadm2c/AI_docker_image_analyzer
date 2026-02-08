@@ -52,7 +52,7 @@ class DockerManager:
         except Exception as e:
             raise Exception(f"Failed to extract metadata for {image_name}: {str(e)}")
 
-    def get_image_files(self, image_name: str, max_depth: int = 3) -> List[FileNode]:
+    def get_image_files(self, image_name: str, max_depth: int = 5) -> List[FileNode]:
         if not self.client:
             raise Exception("Docker client not initialized")
 

@@ -18,6 +18,14 @@ class OptimizationResponse(BaseModel):
     total_size: int
     potential_total_savings: str
 
+class FileNode(BaseModel):
+    name: str
+    type: str  # 'file' or 'directory'
+    size: int = 0
+    children: Optional[List['FileNode']] = None
+
+FileNode.model_rebuild()
+
 class AnalysisRequest(BaseModel):
     image_name: str = Field(..., example="nginx:latest")
 
