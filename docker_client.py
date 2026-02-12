@@ -113,4 +113,57 @@ class DockerManager:
                 except:
                     pass
 
+    def get_file_content(self, image_name: str, file_path: str) -> Dict[str, Any]:
+        if not self.client:
+            raise Exception("Docker client not initialized")
+
+        container = None
+        try:
+            # Create a temporary container
+            container = self.client.containers.create(image_name)
+            
+            # Use get_archive to get the file
+            try:
+                strm, stat = container.get_archive(file_path)
+            except docker.errors.NotFound:
+                return {"content": f"Path '{file_path}' not found in image.", "is_binary": False}
+
+            file_obj = io.BytesIO()
+            for chunk in strm:
+                file_obj.write(chunk)
+            file_obj.seek(0)
+
+            with tarfile.open(fileobj=file_obj, mode='r') as tar:
+                # get_archive returns a tar even for a single file
+                # The first member should be our file
+                members = tar.getmembers()
+                if not members:
+                    return {"content": "Empty archive returned.", "is_binary": False}
+                
+                member = members[0]
+                if member.isdir():
+                    return {"content": f"'{file_path}' is a directory.", "is_binary": False}
+                
+                f = tar.extractfile(member)
+                if f:
+                    content_bytes = f.read()
+                    # Try to decode as UTF-8
+                    try:
+                        content = content_bytes.decode('utf-8')
+                        return {"content": content, "is_binary": False}
+                    except UnicodeDecodeError:
+                        # If it fails, treat as binary
+                        return {"content": "(Binary file content cannot be displayed)", "is_binary": True}
+                else:
+                    return {"content": "Could not read file from archive.", "is_binary": False}
+
+        except Exception as e:
+            raise Exception(f"Failed to extract file content for {file_path}: {str(e)}")
+        finally:
+            if container:
+                try:
+                    container.remove()
+                except:
+                    pass
+
 docker_manager = DockerManager()

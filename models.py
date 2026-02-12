@@ -8,6 +8,14 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
 
+class FileContentRequest(BaseModel):
+    image_name: str
+    file_path: str
+
+class FileContentResponse(BaseModel):
+    content: str
+    is_binary: bool = False
+
 class OptimizationSuggestion(BaseModel):
     title: str
     description: str
