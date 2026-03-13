@@ -1,0 +1,12 @@
+.env
+.git
+.gitignore
+__pycache__
+*.pyc
+node_modules
+dist
+.agent
+brain
+Dockerfile.*
+docker-compose.yml
+verify_app.py

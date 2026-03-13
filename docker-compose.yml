@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: docker-guardian-backend
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - guardian-network
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: docker-guardian-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - guardian-network
+    restart: unless-stopped
+
+networks:
+  guardian-network:
+    driver: bridge
