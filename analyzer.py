@@ -10,7 +10,7 @@ class AIAnalyzer:
     def __init__(self):
         self.token = os.getenv("GITHUB_TOKEN")
         self.endpoint = "https://models.inference.ai.azure.com"
-        self.model_name = "Llama-4-Scout-17B-16E-Instruct"
+        self.model_name = "gpt-4o-mini"
         
         if self.token:
             self.client = OpenAI(
