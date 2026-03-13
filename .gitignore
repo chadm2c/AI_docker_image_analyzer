@@ -1,5 +1,6 @@
 # Environment variables
 .env
+.env.*
 
 # Python
 __pycache__/
@@ -13,3 +14,20 @@ env/
 # IDEs
 .vscode/
 .idea/
+
+# Node.js (for frontend if applicable)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+build/
+
+# Logs
+*.log
+docker-compose.override.yml
+
+# Agent and temporary files
+.agent/
+brain/
+/tmp/

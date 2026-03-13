@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   backend:
+    image: chadmany20/ai-docker-analyzer-backend:latest
     build:
       context: .
       dockerfile: Dockerfile.backend
@@ -15,6 +16,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    image: chadmany20/ai-docker-analyzer-frontend:latest
     build:
       context: ./frontend
       dockerfile: Dockerfile
